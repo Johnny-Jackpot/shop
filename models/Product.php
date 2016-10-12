@@ -1,7 +1,7 @@
 <?php
 
 class Product {
-    const SHOW_BY_DEFAULT = 10;
+    const SHOW_BY_DEFAULT = 6;
     
     /**
      * Returns an array of products
@@ -33,18 +33,21 @@ class Product {
     /**
      * Returns an array of products
      */
-    public static function getProductsListByCategory($categoryId = false) {
+    public static function getProductsListByCategory($categoryId = false, $page = 1) {
         
         if ($categoryId) {
             $categoryId = intval($categoryId);
             $db = Db::getConnection();
             $products = [];
+            $page = intval($page);
+            $offset = ($page - 1) * self::SHOW_BY_DEFAULT;
             $result = $db->query("SELECT id, name, price, image, is_new "
                     . "FROM product "
                     . "WHERE status = '1' "
                     . "AND category_id = '$categoryId'"
                     . "ORDER BY id DESC "
-                    . "LIMIT " . self::SHOW_BY_DEFAULT);
+                    . "LIMIT " . self::SHOW_BY_DEFAULT . " "
+                    . "OFFSET " . $offset);
             
             $i = 0;
             while ($row = $result->fetch()) {
@@ -75,6 +78,43 @@ class Product {
             
             return $result->fetch();
         }
+    }
+    
+    /**
+     * Returns total products
+     */
+    public static function getTotalProductsInCategory($categoryId) {
+        $db = Db::getConnection();
+        
+        $result = $db->query('SELECT count(id) AS count FROM product '
+                . 'WHERE status = "1" AND category_id = "' . $categoryId . '"');
+        $result->setFetchMode(PDO::FETCH_ASSOC);
+        $row = $result->fetch();
+        
+        return $row['count'];
+    }
+    
+    public static function getProductsByIds($idsArray) {
+        $products = [];
+        
+        $db = Db::getConnection();
+        
+        $idsString = implode(',', $idsArray);
+        
+        $sql = "SELECT * FROM product WHERE status='1' AND id IN ($idsString)";
+        $result = $db->query($sql);
+        $result->setFetchMode(PDO::FETCH_ASSOC);
+        
+        $i = 0;
+        while ($row = $result->fetch()) {
+            $products[$i]['id'] = $row['id'];
+            $products[$i]['code'] = $row['code'];
+            $products[$i]['name'] = $row['name'];
+            $products[$i]['price'] = $row['price'];
+            $i++;
+        }
+        
+        return $products;
     }
 }
 
